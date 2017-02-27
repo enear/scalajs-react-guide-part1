@@ -19,13 +19,13 @@ object TrackListingApp {
 
   class TrackListingOps($: BackendScope[Unit, TrackListingState]) {
 
-    val artistState = $.zoom(_.artist)((s, x) => s.copy(artist = x))
-    val albumState = $.zoom(_.album)((s, x) => s.copy(album = x))
+    val artistInputState = $.zoom(_.artistInput)((s, x) => s.copy(artistInput = x))
+    val albumsState = $.zoom(_.albums)((s, x) => s.copy(albums = x))
     val tracksState = $.zoom(_.tracks)((s, x) => s.copy(tracks = x))
 
-    def changeArtistText(event: ReactEventI): Callback = {
+    def updateArtistInput(event: ReactEventI): Callback = {
       event.persist()
-      artistState.modState(_.copy(text = event.target.value))
+      artistInputState.setState(event.target.value)
     }
 
     def searchForArtist(name: String) = Callback.future {
@@ -36,32 +36,14 @@ object TrackListingApp {
       } yield {
         artistOpt match {
           case None => Callback(window.alert("No artist found"))
-          case Some(artist) => $.setState(
-            TrackListingState(
-              artist = ArtistInput(text = artist.name, selected = Some(artist)),
-              album = AlbumInput(albums = albums, selected = albums.headOption),
-              tracks = TrackOutput(tracks = tracks)
-            )
-          )
+          case Some(artist) => $.setState(TrackListingState(artist.name, albums, tracks))
         }
       }
     }
 
-    def updateAlbumAndTracks(event: ReactEventI): Callback = {
-      def updateAlbumState(albumId: String) = {
-        albumState modState { original =>
-          val newAlbum = original.albums.find(_.id == albumId)
-          original.copy(selected = newAlbum)
-        }
-      }
-      def updateTracksState(albumId: String) = Callback.future {
-        fetchTracks(albumId) map { tracks =>
-          tracksState.modState(_.copy(tracks = tracks))
-        }
-      }
-
+    def updateTracks(event: ReactEventI) = Callback.future {
       val albumId = event.target.asInstanceOf[HTMLSelectElement].value
-      updateAlbumState(albumId) >> updateTracksState(albumId)
+      fetchTracks(albumId) map { tracks => tracksState.setState(tracks) }
     }
 
     def fetchArtist(name: String): Future[Option[Artist]] = {
@@ -102,13 +84,13 @@ object TrackListingApp {
           <.div(^.cls := "row", ^.id := "artist",
             <.div(^.cls := "col-xs-10",
               <.input(^.`type` := "text", ^.cls := "form-control",
-                ^.value := s.artist.text, ^.onChange ==> changeArtistText
+                ^.value := s.artistInput, ^.onChange ==> updateArtistInput
               )
             ),
             <.div(^.cls := "col-xs-2",
               <.button(^.`type` := "button", ^.cls := "btn btn-primary custom-button-width",
-                ^.onClick --> searchForArtist(s.artist.text),
-                ^.disabled := s.artist.text.isEmpty,
+                ^.onClick --> searchForArtist(s.artistInput),
+                ^.disabled := s.artistInput.isEmpty,
                 "Search"
               )
             )
@@ -117,15 +99,14 @@ object TrackListingApp {
         <.div(^.cls := "form-group",
           <.label(^.`for` := "album", "Album"),
           <.select(^.cls := "form-control", ^.id := "album",
-            ^.defaultValue := s.album.selected.map(_.id).getOrElse(""),
-            ^.onChange ==> updateAlbumAndTracks,
-            s.album.albums.map { album =>
+            ^.onChange ==> updateTracks,
+            s.albums.map { album =>
               <.option(^.value := album.id, album.name)
             }
           )
         ),
         <.hr,
-        <.ul(s.tracks.tracks map { track =>
+        <.ul(s.tracks map { track =>
           <.li(
             <.div(
               <.p(s"${track.track_number}. ${track.name} (${formatDuration(track.duration_ms)})"),

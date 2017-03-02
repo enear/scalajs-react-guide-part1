@@ -22,7 +22,6 @@ object TrackListingApp {
     val tracksState = $.zoom(_.tracks)((s, x) => s.copy(tracks = x))
 
     def updateArtistInput(event: ReactEventI): Callback = {
-      event.persist()
       artistInputState.setState(event.target.value)
     }
 

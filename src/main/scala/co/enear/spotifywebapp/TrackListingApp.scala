@@ -1,4 +1,4 @@
-package co.enear.scalajs
+package co.enear.spotifywebapp
 
 import japgolly.scalajs.react.{BackendScope, Callback, ReactComponentB, ReactEventI}
 import japgolly.scalajs.react.vdom.prefix_<^._

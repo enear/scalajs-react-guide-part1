@@ -1,4 +1,4 @@
-package co.enear.scalajs
+package co.enear.spotifywebapp
 
 import scala.scalajs.js
 

@@ -1,4 +1,4 @@
-package co.enear.scalajs
+package co.enear.spotifywebapp
 
 case class TrackListingState(
   artistInput: String,

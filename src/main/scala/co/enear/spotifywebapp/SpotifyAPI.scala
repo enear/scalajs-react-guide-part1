@@ -1,4 +1,4 @@
-package co.enear.scalajs
+package co.enear.spotifywebapp
 
 import org.scalajs.dom.ext.Ajax
 

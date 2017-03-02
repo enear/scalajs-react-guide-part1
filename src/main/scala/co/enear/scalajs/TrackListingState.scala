@@ -7,9 +7,5 @@ case class TrackListingState(
 )
 
 object TrackListingState {
-  val empty = TrackListingState(
-    artistInput = "",
-    albums = Nil,
-    tracks = Nil
-  )
+  val empty = TrackListingState("", Nil, Nil)
 }

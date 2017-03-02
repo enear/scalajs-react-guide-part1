@@ -1,14 +1,12 @@
 package co.enear.scalajs
 
-import japgolly.scalajs.react.{BackendScope, Callback, CallbackTo, ReactComponentB, ReactEventI}
+import japgolly.scalajs.react.{BackendScope, Callback, ReactComponentB, ReactEventI}
 import japgolly.scalajs.react.vdom.prefix_<^._
-import org.scalajs.dom.ext.Ajax
 import org.scalajs.dom.raw.HTMLSelectElement
 import org.scalajs.dom.window
 
 import scala.concurrent.Future
 import scala.concurrent.ExecutionContext.Implicits.global
-import scala.scalajs.js.{JSON, URIUtils}
 
 object TrackListingApp {
 
@@ -30,9 +28,9 @@ object TrackListingApp {
 
     def searchForArtist(name: String) = Callback.future {
       for {
-        artistOpt <- fetchArtist(name)
-        albums <- artistOpt map (artist => fetchAlbums(artist.id)) getOrElse Future.successful(Nil)
-        tracks <- albums.headOption map (album => fetchTracks(album.id)) getOrElse Future.successful(Nil)
+        artistOpt <- SpotifyAPI.fetchArtist(name)
+        albums <- artistOpt map (artist => SpotifyAPI.fetchAlbums(artist.id)) getOrElse Future.successful(Nil)
+        tracks <- albums.headOption map (album => SpotifyAPI.fetchTracks(album.id)) getOrElse Future.successful(Nil)
       } yield {
         artistOpt match {
           case None => Callback(window.alert("No artist found"))
@@ -43,33 +41,8 @@ object TrackListingApp {
 
     def updateTracks(event: ReactEventI) = Callback.future {
       val albumId = event.target.asInstanceOf[HTMLSelectElement].value
-      fetchTracks(albumId) map { tracks => tracksState.setState(tracks) }
+      SpotifyAPI.fetchTracks(albumId) map { tracks => tracksState.setState(tracks) }
     }
-
-    def fetchArtist(name: String): Future[Option[Artist]] = {
-      Ajax.get(artistSearchURL(name)) map { xhr =>
-        val searchResults = JSON.parse(xhr.responseText).asInstanceOf[SearchResults]
-        searchResults.artists.items.headOption
-      }
-    }
-
-    def fetchAlbums(artistId: String): Future[Seq[Album]] = {
-      Ajax.get(albumsURL(artistId)) map { xhr =>
-        val albumListing = JSON.parse(xhr.responseText).asInstanceOf[ItemListing[Album]]
-        albumListing.items
-      }
-    }
-
-    def fetchTracks(albumId: String): Future[Seq[Track]] = {
-      Ajax.get(tracksURL(albumId)) map { xhr =>
-        val trackListing = JSON.parse(xhr.responseText).asInstanceOf[ItemListing[Track]]
-        trackListing.items
-      }
-    }
-
-    def artistSearchURL(name: String) = s"https://api.spotify.com/v1/search?type=artist&q=${URIUtils.encodeURIComponent(name)}"
-    def albumsURL(artistId: String) =   s"https://api.spotify.com/v1/artists/$artistId/albums?limit=50&market=PT&album_type=album"
-    def tracksURL(albumId: String) =    s"https://api.spotify.com/v1/albums/$albumId/tracks?limit=50"
 
     def formatDuration(timeMs: Int): String = {
       val timeSeconds = Math.round(timeMs / 1000.0)
